@@ -41,8 +41,15 @@ contract MyEpicGame is ERC721 {
   // things like their HP, AD, etc.
   CharacterAttributes[] defaultCharacters;
 
+   // A mapping from an address => the NFTs tokenId. Gives me an ez way
+  // to store the owner of the NFT and reference it later.
+  mapping(address => uint256) public nftHolders;
+
     // We create a mapping from the nft's tokenId => that NFTs attributes.
   mapping(uint256 => CharacterAttributes) public nftHolderAttributes;
+
+  event CharacterNFTMinted(address sender, uint256 tokenId, uint256 characterIndex);
+  event AttackComplete(address sender, uint newBossHp, uint newPlayerHp);
 
   struct BigBoss {
     string name;
@@ -54,9 +61,7 @@ contract MyEpicGame is ERC721 {
 
   BigBoss public bigBoss;
 
-   // A mapping from an address => the NFTs tokenId. Gives me an ez way
-  // to store the owner of the NFT and reference it later.
-  mapping(address => uint256) public nftHolders;
+
 
   /* -------------------------------------------------------------------------- */
   /*                                 CONSTRUCTOR                                */
@@ -137,6 +142,8 @@ contract MyEpicGame is ERC721 {
 
     // Increment the tokenId for the next person that uses it.
     _tokenIds.increment();
+
+    emit CharacterNFTMinted(msg.sender, newItemId, _characterIndex);
   }
 
   function tokenURI(uint256 _tokenId) public view override returns (string memory) {
@@ -164,6 +171,28 @@ contract MyEpicGame is ERC721 {
     );
     
     return output;
+  }
+
+  function checkIfUserHasNFT() public view returns (CharacterAttributes memory) {
+    // Get the tokenId of the user's character NFT
+    uint256 userNftTokenId = nftHolders[msg.sender];
+    // If the user has a tokenId in the map, return their character.
+    if (userNftTokenId > 0) {
+      return nftHolderAttributes[userNftTokenId];
+    }
+    // Else, return an empty character.
+    else {
+      CharacterAttributes memory emptyStruct;
+      return emptyStruct;
+   }
+  }
+
+  function getAllDefaultCharacters() public view returns (CharacterAttributes[] memory) {
+    return defaultCharacters;
+  }
+
+  function getBigBoss() public view returns (BigBoss memory) {
+    return bigBoss;
   }
 
   /* -------------------------------------------------------------------------- */
@@ -206,5 +235,6 @@ contract MyEpicGame is ERC721 {
     // Console for ease.
     console.log("Player attacked boss. New boss hp: %s", bigBoss.hp);
     console.log("Boss attacked player. New player hp: %s\n", player.hp);
+    emit AttackComplete(msg.sender, bigBoss.hp, player.hp);
   }
 }
